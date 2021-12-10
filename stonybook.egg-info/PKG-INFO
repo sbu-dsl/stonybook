@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: stonybook
+Version: 1.0.0
+Summary: Stony Book Pipeline
+Home-page: https://github.com/sbu-dsl/stonybook
+Author: Data Science Lab
+Author-email: cpethe@cs.stonybrook.edu
+License: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# stonybook
+Code for the Stony Book annotation pipeline
+
+

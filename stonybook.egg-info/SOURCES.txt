@@ -1,0 +1,8 @@
+LICENSE
+README.md
+setup.py
+stonybook/__init__.py
+stonybook.egg-info/PKG-INFO
+stonybook.egg-info/SOURCES.txt
+stonybook.egg-info/dependency_links.txt
+stonybook.egg-info/top_level.txt

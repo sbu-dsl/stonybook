@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/cpethe/stonybook/stonybook/preprocessing/hathitrust/book_segmentation/models/labseg10/new_model.ckpt"
+all_model_checkpoint_paths: "/home/cpethe/stonybook/stonybook/preprocessing/hathitrust/book_segmentation/models/labseg10/new_model.ckpt"

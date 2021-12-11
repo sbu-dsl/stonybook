@@ -163,7 +163,7 @@ def convert_raw_to_base(book):
     
 def gutenberg_preprocess(input_txt_file, output_dir):
     # input_txt_file:  <book_id>.txt
-    # Outputs:         output_dir/book_id/raw.xml
+    # Outputs:         output_dir/book_id/raw.xml, output_dir/book_id/base.xml
     
     input_txt_file = Path(input_txt_file)
     output_dir = Path(output_dir)

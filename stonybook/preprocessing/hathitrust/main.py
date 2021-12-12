@@ -6,6 +6,7 @@ import copy
 from nltk.corpus import words
 from string import ascii_lowercase
 from unidecode import unidecode
+from collections import Counter
 
 from stonybook.preprocessing.hathitrust.clean_hathi_headers import htrc_cleaned_pages
 
@@ -132,6 +133,10 @@ def generate_xml_tree(grouped_sections, parsed_pages, input_dir, output_path_raw
 
 
 
+def most_common(arr):
+    c = Counter(arr)
+    return c.most_common(1)[0][0]
+
 
 def strip_numerals(header, body, footer):
     if not body:
@@ -161,11 +166,11 @@ def strip_start_end_numerals(header, body, footer):
     if not body:
         return (header, body, footer)
     body_lines = body.split('\n')
-    while body_lines and (any(c.isnumeric() for c in body_lines[0].split()[0])
+    while body_lines and body_lines[0].strip() and (any(c.isnumeric() for c in body_lines[0].split()[0])
         or any(c.isnumeric() for c in body_lines[0].split()[-1])):
         header += '\n' + body_lines[0]
         body_lines = body_lines[1:]
-    while body_lines and (any(c.isnumeric() for c in body_lines[-1].split()[0])
+    while body_lines and body_lines[-1].strip() and (any(c.isnumeric() for c in body_lines[-1].split()[0])
         or any(c.isnumeric() for c in body_lines[-1].split()[-1])):
         footer = body_lines[-1] + '\n' + footer
         body_lines = body_lines[:-1]
@@ -449,6 +454,10 @@ def merge_hyphens(text):
             tmp_end_spaces = line[len(tmp_line):]
             # next line
             next_line = lines[num + 1].lstrip()
+            
+            if len(next_line) == 0:
+                continue
+            
             idx = lines[num + 1].index(next_line[0])
             next_line_spaces = lines[num + 1][:idx]
         

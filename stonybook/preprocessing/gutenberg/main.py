@@ -158,10 +158,13 @@ def convert_raw_to_base(book):
             new_elem.text = p
             prev_tag.addnext(new_elem)
             prev_tag = new_elem
+            
+    ET.strip_elements(book, 'gutenberg_header')
+    ET.strip_elements(book, 'gutenberg_footer')
     
     return book
     
-def gutenberg_preprocess(input_txt_file, output_dir):
+def gutenberg_preprocess(input_txt_file, output_dir, force_raw=False, force_base=False):
     # input_txt_file:  <book_id>.txt
     # Outputs:         output_dir/book_id/raw.xml, output_dir/book_id/base.xml
     
@@ -175,10 +178,9 @@ def gutenberg_preprocess(input_txt_file, output_dir):
         output_dir.mkdir(parents=True)
     
     output_path_raw = output_dir/"raw.xml"
+    output_path_base = output_dir/"base.xml"
     
-    if not output_path_raw.exists():
-        
-        print('doing raw')
+    if force_raw or (not output_path_raw.exists()):
     
         with open(input_txt_file, 'r') as f:
             content = f.read()
@@ -195,17 +197,16 @@ def gutenberg_preprocess(input_txt_file, output_dir):
 
         save_to_file(processed_xml, output_path_raw)
     
-    # Read raw file
-    # Convert to base (remove annotation tags, add paragraph tags)
-    
-    parser = ET.XMLParser(huge_tree=True, remove_blank_text=True)
-    tree = ET.parse(str(output_path_raw), parser=parser)
-    book = tree.getroot()
-    
-    output_path_base = output_dir/"base.xml"
-    
-    book = convert_raw_to_base(book)
-    save_to_file(book, output_path_base)
+    if force_base or (not output_path_base.exists()):
+        # Read raw file
+        # Convert to base (remove annotation tags, add paragraph tags)
+
+        parser = ET.XMLParser(huge_tree=True, remove_blank_text=True)
+        tree = ET.parse(str(output_path_raw), parser=parser)
+        book = tree.getroot()
+
+        book = convert_raw_to_base(book)
+        save_to_file(book, output_path_base)
     
     
     

@@ -4,7 +4,9 @@ from unidecode import unidecode
 import re
 
 from stonybook.preprocessing.gutenberg.gutenberg_util import get_strip_locations
+from stonybook.preprocessing.gutenberg.header import convert_base_to_header_annot
 
+from stonybook.preprocessing.regex.regex_helper import generate_final_regex_rules
 
 def valid_xml_char_ordinal(c):
     codepoint = ord(c)
@@ -149,8 +151,11 @@ def convert_raw_to_base(book):
             body.insert(i, new_elem)
     
     for c in children:
-        paras = re.split('\n\n\s*', c.tail)
-        paras = [x for x in paras if len(x.strip()) > 0]
+        if c.tail is not None:
+            paras = re.split('\n\n\s*', c.tail)
+            paras = [x for x in paras if len(x.strip()) > 0]
+        else:
+            paras = []
         c.tail = None
         prev_tag = c
         for p in paras:
@@ -164,7 +169,7 @@ def convert_raw_to_base(book):
     
     return book
     
-def gutenberg_preprocess(input_txt_file, output_dir, force_raw=False, force_base=False):
+def gutenberg_preprocess(input_txt_file, output_dir, regex_tuple=None, force_raw=False, force_base=False, force_header=False):
     # input_txt_file:  <book_id>.txt
     # Outputs:         output_dir/book_id/raw.xml, output_dir/book_id/base.xml
     
@@ -179,6 +184,8 @@ def gutenberg_preprocess(input_txt_file, output_dir, force_raw=False, force_base
     
     output_path_raw = output_dir/"raw.xml"
     output_path_base = output_dir/"base.xml"
+#     output_path_header = output_dir/"header_annotated.xml"
+    output_path_header = output_dir/"header_annotated_2.xml"
     
     if force_raw or (not output_path_raw.exists()):
     
@@ -209,5 +216,17 @@ def gutenberg_preprocess(input_txt_file, output_dir, force_raw=False, force_base
         save_to_file(book, output_path_base)
     
     
-    
+    if force_header or (not output_path_header.exists()):
+        # Read base file
+        # Convert to header annotated
+        
+        if regex_tuple is None:
+            regex_tuple = generate_final_regex_rules()
+        
+        parser = ET.XMLParser(huge_tree=True, remove_blank_text=True)
+        tree = ET.parse(str(output_path_base), parser=parser)
+        book = tree.getroot()
+
+        book = convert_base_to_header_annot(book, regex_tuple, output_dir)
+        save_to_file(book, output_path_header)
     

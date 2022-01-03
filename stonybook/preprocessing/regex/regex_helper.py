@@ -9,7 +9,9 @@ def conv_to_title(string):
 
 def get_corresponding_rule(rule_text):
     word_numbers = ['word_number_one', 'word_number_One', 'word_number_ONE', 'word_number_first', 'word_number_First', 'word_number_FIRST']
-    if rule_text == 'desc':
+    if rule_text == 'generic_text':
+        return ".+"
+    elif rule_text == 'desc':
         return "(CHAPTER|Chapter|CHAP|Chap|PART|Part|BOOK|Book|STORY|Story|LETTER|Letter|VOLUME|Volume|VOL|Vol|CASE|Case)([^\S\r\n]*(THE|The|the|NO|No|no|NO\.|No\.|no\.|NUMBER|Number|number|NUMBER\.|Number\.|number\.))*"
     elif rule_text == 'roman_upper':
         return "(?=[MDCLXVI])M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})(?![A-Za-z0-9'\"])"
@@ -22,7 +24,10 @@ def get_corresponding_rule(rule_text):
     elif rule_text == 'title_upper':
         return "[^A-Za-z]*[A-Z][^a-z]+"
     elif rule_text == 'title_lower':
-        return "[^A-Za-z\d]*[^\S\r\n\D]*[A-Z][^\r\n]*[^\.]"
+        return "[^A-Za-z\d]*[^\S\r\n\D]*[A-Z][^\r\n]*[^\.\?\-!:;,]"
+#         return "[^A-Za-z\d]*[\d\s]*[A-Z][\s\S]*[^\.]"
+#         return "[\d\s]*[A-Z][\s\S]*[^\.\"']"
+#         return "([A-Z\d][^A-Z\s]*[\s]+)*[A-Z\d][^A-Z\s]*"
     elif rule_text == 'whitespace':
         return "[\s]+"
     
@@ -50,7 +55,7 @@ def get_corresponding_rule(rule_text):
             else:
                 tmp2.append(elem)
         l = sorted(tmp2, key=len)[::-1]
-        reg = '|'.join([x + '(?!\S|( and))' for x in l])
+        reg = '|'.join([x + '(?!\-|( and))' for x in l])
         return reg
     
     return None
@@ -120,19 +125,70 @@ def remove_custom_rules(l):
     
     # blacklisted sequences
     word_numbers = ['roman_upper', 'roman_lower', 'numeral', 'word_number_one', 'word_number_One', 'word_number_ONE', 'word_number_first', 'word_number_First', 'word_number_FIRST']
+    
+    word_numbers_specific = ['roman_upper', 'roman_lower', 'numeral', 'word_number_one', 'word_number_One', 'word_number_first', 'word_number_First']
 
     res = list()
     for elem in l:
         if issublist(['punctuation', 'whitespace', 'punctuation'], elem):
             continue
-        if elem == ['punctuation', 'title_lower']:
-            continue
+        # Redundant
+#         if elem == ['punctuation', 'title_lower']:
+#             continue
+#         if elem == ['punctuation']:
+#             continue
         if 'desc' in elem and not any(y in elem for y in word_numbers):
             continue
+        # Example: "Three birds"
+        if any(y in elem for y in word_numbers_specific):
+            if 'desc' not in elem:
+                if 'generic_text' in elem:
+                    continue
+            
+#         if elem == ['word_number_One', 'whitespace', 'generic_text']:
+#             continue
+#         if elem == ['word_number_One', 'generic_text']:
+#             continue
+#         if elem == ['word_number_First', 'whitespace', 'generic_text']:
+#             continue
+#         if elem == ['word_number_First', 'generic_text']:
+#             continue
+
+        if elem[0] == 'word_number_one':
+            continue
+        if elem[0] == 'word_number_first':
+            continue
+        
+        # Footnotes
+        if elem[0] == 'punctuation' and elem.count('punctuation') == 1:
+            continue
+        if len(elem) >= 4:
+            if elem[0] == 'punctuation' and elem[1] in word_numbers and elem[2] == 'punctuation' and (elem[3:] == ['whitespace', 'generic_text'] or elem[3:] == ['generic_text']):
+                continue
+        
         res.append(elem)
     l = res
     
     return l
+
+def add_title_generic_to_rules(l):
+    res = list()
+    res += l
+    word_numbers = ['roman_upper', 'roman_lower', 'numeral', 'word_number_one', 'word_number_One', 'word_number_ONE', 'word_number_first', 'word_number_First', 'word_number_FIRST']
+
+    for elem in l:
+        if any(x in elem for x in word_numbers):
+            if 'title_upper' in elem:
+                new_rule = [x if x != 'title_upper' else 'generic_text' for x in elem]
+                if new_rule not in res:
+                    res.append(new_rule)
+
+            if 'title_lower' in elem:
+                new_rule = [x if x != 'title_lower' else 'generic_text' for x in elem]
+                if new_rule not in res:
+                    res.append(new_rule)
+                
+    return res
 
 
 def generate_final_regex_rules():
@@ -163,7 +219,7 @@ def generate_final_regex_rules():
 
     string_to_pattern = dict()
 
-    components = ['desc', 'whitespace', 'punctuation', 'roman_upper', 'roman_lower', 'numeral', 'word_number_one', 'word_number_One', 'word_number_ONE', 'word_number_first', 'word_number_First', 'word_number_FIRST', 'punctuation', 'title_upper', 'title_lower']
+    components = ['desc', 'whitespace', 'punctuation', 'roman_upper', 'roman_lower', 'numeral', 'word_number_one', 'word_number_One', 'word_number_ONE', 'word_number_first', 'word_number_First', 'word_number_FIRST', 'punctuation', 'title_upper', 'title_lower', 'generic_text']
 
     for elem in components:
         string_to_pattern[elem] = get_corresponding_rule(elem)
@@ -174,12 +230,13 @@ def generate_final_regex_rules():
     all_seqs = remove_duplicates(all_seqs)
     all_seqs = remove_consecutives(all_seqs)
     all_seqs = remove_whitespace_from_ends(all_seqs)
+    all_seqs = add_title_generic_to_rules(all_seqs)
     all_seqs = remove_custom_rules(all_seqs)
     
     rule_texts = [''.join(['(' + string_to_pattern[x] + ')' for x in y]) for y in all_seqs]
     rules = [re.compile(x) for x in rule_texts]
 
-    priority = ['desc', 'roman_upper', 'roman_lower', 'numeral', 'word_number_first', 'word_number_First', 'word_number_FIRST', 'word_number_one', 'word_number_One', 'word_number_ONE', 'punctuation', 'whitespace', 'title_upper', 'title_lower']
+    priority = ['desc', 'roman_upper', 'roman_lower', 'numeral', 'word_number_first', 'word_number_First', 'word_number_FIRST', 'word_number_one', 'word_number_One', 'word_number_ONE', 'punctuation', 'whitespace', 'title_upper', 'title_lower', 'generic_text']
     
     
     return all_seqs, rules, priority

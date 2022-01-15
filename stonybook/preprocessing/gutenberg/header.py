@@ -77,7 +77,7 @@ def convert_base_to_header_annot(book, regex_tuple, output_dir=None):
             paras[idx].text = s.upper()
     
     # Get matching rules for each paragraph
-    matching_rules = [get_best_matching_rule(p.text, all_seqs, rules, priority) for p in paras]
+    matching_rules = [get_best_matching_rule(p.text.strip().strip("\"'"), all_seqs, rules, priority) for p in paras]
     
     # Get header attributes
     matched_rules = list()
@@ -86,7 +86,7 @@ def convert_base_to_header_annot(book, regex_tuple, output_dir=None):
     # Decide which headers to merge with next ones
     for idx, elem in enumerate(matching_rules):
         if elem:
-            desc, number, number_text, number_type, title, rule_text = get_header_attrs(paras[idx].text, elem[0])
+            desc, number, number_text, number_type, title, rule_text = get_header_attrs(paras[idx].text.strip().strip("\"'"), elem[0])
             all_rules = elem
             matched_rules.append([idx, all_rules, desc, number, number_text, number_type, title, rule_text])
             
@@ -135,13 +135,13 @@ def convert_base_to_header_annot(book, regex_tuple, output_dir=None):
     
     # Get header attributes for matched rules after merging
     paras = book.findall('.//p')
-    matching_rules = [get_best_matching_rule(p.text, all_seqs, rules, priority) for p in paras]
+    matching_rules = [get_best_matching_rule(p.text.strip().strip("\"'"), all_seqs, rules, priority) for p in paras]
 
     matched_rules = list()
 
     for idx, elem in enumerate(matching_rules):
         if elem:
-            desc, number, number_text, number_type, title, rule_text = get_header_attrs(paras[idx].text, elem[0])
+            desc, number, number_text, number_type, title, rule_text = get_header_attrs(paras[idx].text.strip().strip("\"'"), elem[0])
             matched_rules.append([idx, desc, number, number_text, number_type, title, rule_text])
     
     if output_dir is not None:
@@ -151,15 +151,16 @@ def convert_base_to_header_annot(book, regex_tuple, output_dir=None):
     # Decide which rules to keep
     
     matched_rules_new = [x[:-1] + [make_rule_generic(x[-1])] for x in matched_rules]
-    rule_set = {x[-1] for x in matched_rules_new}
-    
+    rule_set = {(x[1], x[-1]) for x in matched_rules_new}
+
+
     sets_of_keep_indices = list()
 
-    for elem in rule_set:
+    for desc_word, elem in rule_set:
         if not any(word_num in elem for word_num in word_numbers):
             continue
 
-        matches = [(idx, x) for idx, x in enumerate(matched_rules_new) if x[-1] == elem]
+        matches = [(idx, x) for idx, x in enumerate(matched_rules_new) if x[-1] == elem and x[1] == desc_word]
 
         matched_numbers = [x[1][2] for x in matches]
 
@@ -218,24 +219,44 @@ def convert_base_to_header_annot(book, regex_tuple, output_dir=None):
     
     
     # If nothing matches
+    matched_rule_indices = [x[0] for x in matched_rules]
+
     if len(keep_rule_set) == 0:
         # Keep only title_uppers if any exist
-        if 'title_upper' in rule_set:
-            final_rule_list = [x for x in matched_rules if x[-1] == 'title_upper']
+        final_rule_list = [x for x in matched_rules if x[-1] == 'title_upper']
         # Else keep as-is
-        else:
-            final_rule_list = [x for x in matched_rules if x[-1] != 'title_lower']
-    
-    # Remove TOC
+        if len(final_rule_list) == 0:
+            final_rule_list = [x for x in matched_rules] # if x[-1] != 'title_lower']
+
     else:
         final_rule_list = list()
         for rule_group in keep_rule_set:
             para_nums = [x[0] for x in rule_group]
 
-            mean_len = np.mean([para_nums[i + 1] - para_nums[i] for i in range(len(para_nums) - 1)])
-
-            if mean_len >= 4:
+            if len(para_nums) < 2:
                 final_rule_list += rule_group
+
+            else:
+
+                # Check if it is TOC with nesting
+                count = 0
+                for i in range(len(para_nums) - 1):
+                    curr_num = para_nums[i]
+                    next_num = para_nums[i + 1]
+
+                    for p_num in range(curr_num + 1, next_num):
+                        if p_num in matched_rule_indices:
+                            count += 1
+                if count / (para_nums[-1] - para_nums[0]) > 0.75:
+                    continue
+
+                mean_len = np.mean([para_nums[i + 1] - para_nums[i] for i in range(len(para_nums) - 1)])
+
+                if mean_len >= 4:
+                    final_rule_list += rule_group
+                
+             
+            
     
     # Add header attributes
     for elem in final_rule_list:
@@ -249,6 +270,30 @@ def convert_base_to_header_annot(book, regex_tuple, output_dir=None):
         paras[idx].set('title', str(title))
         paras[idx].set('rule_text', str(rule_text))
     
+    
+    # Merge consecutive title_uppers and title_lowers
+    final_rule_list = sorted(final_rule_list)
+    titles = {'title_upper', 'title_lower'}
+    to_merge = list()
+    for i, elem in enumerate(final_rule_list):
+        idx, desc, number, number_text, number_type, title, rule_text = elem
+
+        if i == len(final_rule_list) - 1:
+            continue
+
+        next_elem = final_rule_list[i + 1]
+        if rule_text in titles \
+        and next_elem[0] == idx + 1 \
+        and next_elem[-1] == rule_text:
+            to_merge.append(idx)
+
+    to_merge = sorted(to_merge, reverse=True)
+
+    for para_num in to_merge:
+        next_para_num = para_num + 1
+        paras[para_num].text += '\n\n' + paras[next_para_num].text
+        paras[para_num].attrib['title'] += '\n\n' + paras[next_para_num].attrib['title']
+        paras[next_para_num].getparent().remove(paras[next_para_num])
     
     
     return book

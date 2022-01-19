@@ -29,22 +29,18 @@ def parse_headers(header_xml_path):
     header_attribs = []
     for header in body.iter('header'):
         paragraphs = []
-        para = header.getnext()
-        while para is not None and para.tag == 'p':
+        for para in header.iter('p'):
             paragraphs.append(para.text)
-            para = para.getnext()
         if len(paragraphs) <= 1:
             continue
         sections.append(paragraphs)
         header_attrib = dict(header.attrib)
-        header_attrib['text'] = header.text
         header_attribs.append(header_attrib)
     return sections, header_attribs
 
 def gen_chapters_with_tok_info(corenlp_results, para_idxs):
     chapters = []
     tok_ner = []
-    sentence_to_tok_idx = {}
     mentions = []
     global_tok_idx = 0
     for chapter_idx, corenlp_result in enumerate(corenlp_results):
@@ -53,7 +49,7 @@ def gen_chapters_with_tok_info(corenlp_results, para_idxs):
         paragraphs = []
         sentences = []
         para_idx = 0
-        for sent_idx, corenlp_sentence in enumerate(corenlp_result.sentence):
+        for corenlp_sentence in corenlp_result.sentence:
             start_char = corenlp_sentence.token[0].beginChar
             if para_idx < len(para_points) and start_char >= para_points[para_idx]:
                 para_idx += 1
@@ -71,7 +67,6 @@ def gen_chapters_with_tok_info(corenlp_results, para_idxs):
             for e in corenlp_sentence.basicDependencies.edge:
                 parent[e.target - 1] = (e.source - 1 + sentence_start_tok_index, e.dep)
             
-#             try:
             for tok_idx, tok in enumerate(corenlp_sentence.token):
                 tok_info = {
                     "text": tok.word, 
@@ -84,10 +79,7 @@ def gen_chapters_with_tok_info(corenlp_results, para_idxs):
                 tok_ner.append(tok.ner)
                 sentence.append(tok_info)
                 global_tok_idx += 1
-#             except:
-#                 print(parent)
-#                 print(corenlp_sentence.basicDependencies.root)
-#                 print(corenlp_sentence.basicDependencies.edge)
+
             sentences.append(sentence)
         if sentences:
             paragraphs.append(sentences)
@@ -122,9 +114,7 @@ def generate_tokenized_xml(chapters, mentions, chapter_tags, base_xml_path, xml_
         for child in base_root.find("meta"):
             meta.append(child)
     analysis = etree.SubElement(root, "analysis")
-    front = etree.SubElement(root, "front")
     body = etree.SubElement(root, "body")
-    back = etree.SubElement(root, "back")
     tok_no = 0
     sent_no = 0
     para_no = 0

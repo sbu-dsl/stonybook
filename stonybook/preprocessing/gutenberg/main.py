@@ -88,8 +88,12 @@ def annotate_all(book):
     
     d = dict()
     
-    d['italic'] = '(?<=\s)_[^\s][^_]*[^\s]_(?=\s)'
-    d['bold'] = '(?<=\s)\=[^\s][^\=]*[^\s]\=(?!\=)'
+#     d['italic'] = '(?<=\s)_[^\s][^_]*[^\s]_(?=\s)'
+#     d['bold'] = '(?<=\s)\=[^\s][^\=]*[^\s]\=(?!\=)'
+    d['italic'] = '_[^\s][^_]*[^\s]_'
+    d['bold'] = '\=[^\s][^\=]*[^\s]\=(?!\=)'
+    d['bold2'] = '\*[^\s][^\*]*[^\s]\*(?!\*)'
+    
     d['star_sep'] = '(?<=\n)[^\S\r\n]*[\*][\*\s]*(?=\n)'
     d['illustration'] = '\[Illustration[^\]]*\]'
     d['transcriber_note'] = '\[Transcriber[^\]]*\]'
@@ -99,7 +103,7 @@ def annotate_all(book):
     s = set()
     l = list()
     
-    for elem in ['transcriber_note', 'illustration', 'italic', 'bold', 'star_sep']:
+    for elem in ['transcriber_note', 'illustration', 'italic', 'bold', 'bold2', 'star_sep']:
     
 #     for elem in ['transcriber_note']:
         
@@ -107,6 +111,8 @@ def annotate_all(book):
             strip_char = '_'
         elif elem == 'bold':
             strip_char = '='
+        elif elem == 'bold2':
+            strip_char = '*'
         else:
             strip_char = ''
     
@@ -129,11 +135,131 @@ def save_to_file(book, filename):
     tree = ET.ElementTree(book)
     tree.write(filename, pretty_print=True, encoding='utf-8')
     return
+
+
+def add_front_matter(book):
+    body = book.find('.//body')
+    fm = ET.Element('front_matter')
+    body.addprevious(fm)
+    
+    headers = book.findall('.//header')
+    if len(headers) == 0:
+        return book
+    
+    children = body.getchildren()
+    if len(children) == 0:
+        return book
+    
+    c = children[0]
+    while c.tag == 'p':
+        next_c = c.getnext()
+        fm.append(c)
+        c = next_c
+    
+    return book
+
+def add_back_matter(book):
+    
+    body = book.find('.//body')
+    bm = ET.Element('back_matter')
+    body.addnext(bm)
+    
+    headers = book.findall('.//header')
+    if len(headers) == 0:
+        return book
+    
+    elem = headers[-1].getnext()
+    
+    while elem is not None:
+        text = elem.text
+        preproc = ''.join([x for x in text if x.isalnum() or x.isspace()]).lower().split()
+        if preproc == ['the', 'end']:
+            break
+        if preproc == ['acknowledgments']:
+            break
+        if preproc == ['bibliography']:
+            break
+        if preproc == ['glossary']:
+            break
+        if preproc == ['creative', 'commons']:
+            break
+        
+        elem = elem.getnext()
+    
+    while elem is not None:
+        elem_next = elem.getnext()
+        bm.append(elem)
+        elem = elem_next
+            
+    return book
+
+def remove_star_sep(book):
+    
+    headers = book.findall('.//header')
+    if len(headers) == 0:
+        body = book.find('.//body')
+        elem = ET.Element('header')
+        elem.set('desc', str(None))
+        elem.set('number', str(None))
+        elem.set('number_text', str(None))
+        elem.set('number_type', str(None))
+        elem.set('title', str(elem.text))
+        elem.set('rule_text', 'init_header')
+        body.insert(0, elem)
+        
+        star_seps = book.findall('.//star_sep')
+        
+        for elem in star_seps:
+        
+            elem.tag = 'header'
+            elem.set('desc', str(None))
+            elem.set('number', str(None))
+            elem.set('number_text', str(None))
+            elem.set('number_type', str(None))
+            elem.set('title', str(elem.text))
+            elem.set('rule_text', 'star_sep')
+    
+    else:
+        ET.strip_elements(book, 'star_sep')
+    
+    return book
+
+
+def add_nesting(book):
+    # Assumes that there are only 'header' and 'p' tags in 'body'
+    
+    headers = book.findall('.//header')
+    if len(headers) == 0:
+        body = book.find('.//body')
+        elem = ET.Element('header')
+        elem.set('desc', str(None))
+        elem.set('number', str(None))
+        elem.set('number_text', str(None))
+        elem.set('number_type', str(None))
+        elem.set('title', str(elem.text))
+        elem.set('rule_text', 'init_header')
+        body.insert(0, elem)
+    
+    headers = book.findall('.//header')
+    
+    for h in headers:
+        h.set('text', str(h.text))
+        h.text = None
+        
+        curr_elem = h.getnext()
+        while curr_elem is not None and curr_elem.tag == 'p':
+            curr_elem_2 = curr_elem.getnext()
+            h.append(curr_elem)
+            curr_elem = curr_elem_2
+    
+    
+    return book
     
 def convert_raw_to_base(book):
     
     ET.strip_tags(book, 'italic')
     ET.strip_tags(book, 'bold')
+    ET.strip_tags(book, 'bold2')
     
     ET.strip_elements(book, 'illustration', with_tail=False)
     ET.strip_elements(book, 'transcriber_note', with_tail=False)
@@ -184,8 +310,9 @@ def gutenberg_preprocess(input_txt_file, output_dir, regex_tuple=None, force_raw
     
     output_path_raw = output_dir/"raw.xml"
     output_path_base = output_dir/"base.xml"
-#     output_path_header = output_dir/"header_annotated.xml"
-    output_path_header = output_dir/"header_annotated_2.xml"
+    output_path_header = output_dir/"header_annotated.xml"
+#     output_path_header = output_dir/"header_annotated_4.xml"
+#     output_path_header = output_dir/"header_annot_nested.xml"
     
     if force_raw or (not output_path_raw.exists()):
     
@@ -227,6 +354,10 @@ def gutenberg_preprocess(input_txt_file, output_dir, regex_tuple=None, force_raw
         tree = ET.parse(str(output_path_base), parser=parser)
         book = tree.getroot()
 
-        book = convert_base_to_header_annot(book, regex_tuple, output_dir)
+        book = convert_base_to_header_annot(book, regex_tuple, output_dir=None)
+        book = add_front_matter(book)
+        book = add_back_matter(book)
+        book = remove_star_sep(book)
+        book = add_nesting(book)
         save_to_file(book, output_path_header)
     

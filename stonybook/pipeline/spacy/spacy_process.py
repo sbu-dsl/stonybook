@@ -5,6 +5,7 @@ from lxml import etree
 from spacy.tokens import Doc
 from operator import itemgetter
 from multiprocessing import Pool
+from pathlib import Path
 
 
 def gen_full_chapters_and_para_idxs(sections):
@@ -217,6 +218,7 @@ def annotate_coref(annot_xml_path, coref_xml_path, spacy_path):
     tree.write(str(coref_xml_path), pretty_print=True, encoding='utf-8')
 
 def spacy_single_pickle(book_dir):
+    book_dir = Path(book_dir)
     output_path = book_dir / "spacy_annotated.xml"
     output_pkl_path = book_dir / "spacy_annots.pkl"
     input_xml_path = book_dir / "header_annotated.xml"

@@ -294,6 +294,7 @@ def annotate_quotes(annot_xml_path, quote_xml_path, corenlp_path):
     tree.write(str(quote_xml_path), pretty_print=True, encoding='utf-8')
 
 def corenlp_single_pickle(book_dir):
+    book_dir = Path(book_dir)
     output_path = book_dir / "corenlp_annotated.xml"
     output_pkl_path = book_dir / "corenlp_annots.pkl"
     input_xml_path = book_dir / "header_annotated_4.xml"

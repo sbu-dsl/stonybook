@@ -601,7 +601,7 @@ def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None):
         
     if not output_path_header.exists():
         
-        regex_tuple = None
+        # regex_tuple = None
         
         if regex_tuple is None:
             regex_tuple = generate_final_regex_rules()

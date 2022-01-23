@@ -69,20 +69,20 @@ def process_single_hathitrust(input_zip_file, output_dir, annot_lib='corenlp', r
         print(e)
     
     
-def process_batch_gutenberg(input_txt_file_list, output_dir, num_threads):
+def process_batch_gutenberg(input_txt_file_list, output_dir, annot_lib='corenlp', num_threads):
     regex_tuple = generate_final_regex_rules()
     
     pool = multiprocessing.Pool(processes=num_threads)
-    data = pool.map(partial(process_single_gutenberg, output_dir=output_dir, regex_tuple=regex_tuple), input_txt_file_list)
+    data = pool.map(partial(process_single_gutenberg, output_dir=output_dir, annot_lib=annot_lib, regex_tuple=regex_tuple), input_txt_file_list)
     pool.close()
     pool.join()
     
     
-def process_batch_hathitrust(input_zip_file_list, output_dir, num_threads):
+def process_batch_hathitrust(input_zip_file_list, output_dir, annot_lib='corenlp', num_threads):
     regex_tuple = generate_final_regex_rules()
     
     pool = multiprocessing.Pool(processes=num_threads)
-    data = pool.map(partial(process_single_hathitrust, output_dir=output_dir, regex_tuple=regex_tuple), input_zip_file_list)
+    data = pool.map(partial(process_single_hathitrust, output_dir=output_dir, annot_lib=annot_lib, regex_tuple=regex_tuple), input_zip_file_list)
     pool.close()
     pool.join()
     

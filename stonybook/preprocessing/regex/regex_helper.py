@@ -2,6 +2,8 @@ import inflect
 from collections import Counter
 import re
 from itertools import groupby
+import pickle
+from pathlib import Path
 
 
 def conv_to_title(string):
@@ -193,6 +195,20 @@ def add_title_generic_to_rules(l):
 
 def generate_final_regex_rules():
     
+#     home = Path.home()
+#     stonybook_data_path = home / "stonybook_data"
+    
+#     if not stonybook_data_path.is_dir():
+#         stonybook_data_path.mkdir(parents=True, exist_ok=True)
+    
+#     regex_cache_file = stonybook_data_path / "regex_rules.pkl"
+#     if regex_cache_file.is_file():
+#         print('reading pkl')
+#         with open(str(regex_cache_file), 'rb') as f:
+#             all_seqs, rules, priority = pickle.load(f)
+#         print('done reading pkl')
+#         return all_seqs, rules, priority
+    
     l = list()
 
     l.append(['desc'])
@@ -239,6 +255,9 @@ def generate_final_regex_rules():
     priority = ['desc', 'roman_upper', 'roman_lower', 'numeral', 'word_number_first', 'word_number_First', 'word_number_FIRST', 'word_number_one', 'word_number_One', 'word_number_ONE', 'punctuation', 'whitespace', 'title_upper', 'title_lower', 'generic_text']
     
     
+#     with open(str(regex_cache_file), 'wb') as f:
+#         pickle.dump([all_seqs, rules, priority], f)
+
     return all_seqs, rules, priority
 
 

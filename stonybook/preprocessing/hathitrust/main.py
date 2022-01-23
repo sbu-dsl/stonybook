@@ -7,6 +7,8 @@ from nltk.corpus import words
 from string import ascii_lowercase
 from unidecode import unidecode
 from collections import Counter
+import urllib
+import tarfile
 
 from stonybook.preprocessing.hathitrust.clean_hathi_headers import htrc_cleaned_pages
 from stonybook.preprocessing.hathitrust.header_annotation import annotate_headers
@@ -20,7 +22,21 @@ def parse_grouped_sections(unzipped_loc):
     from stonybook.preprocessing.hathitrust.book_segmentation.code import segment_from_feature_file
     from stonybook.preprocessing.hathitrust.book_segmentation.code import featurize_book
     
-    modelFolder = '/nfs/nfs-davinci/cpethe/books/Sem9/stonybook/stonybook/preprocessing/hathitrust/book_segmentation/models/labseg10'
+    home = Path.home()
+    stonybook_data_path = home / "stonybook_data"
+
+    if not stonybook_data_path.is_dir():
+        stonybook_data_path.mkdir(parents=True, exist_ok=True)
+
+    model_tar_path = stonybook_data_path / "hathi_model.tar.gz"
+    if not model_tar_path.is_file():
+        print("downloading Hathi segmentation model")
+        urllib.request.urlretrieve("http://stonybook.org/hathi_model", model_tar_path)
+
+    with tarfile.open(model_tar_path) as f:
+        f.extractall(stonybook_data_path)
+
+    modelFolder = str(stonybook_data_path / "hathi_model")
     
     meanFile="%s/means.txt" % modelFolder
     modelFile="%s/new_model.ckpt" % modelFolder

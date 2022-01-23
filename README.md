@@ -36,7 +36,7 @@ StonyBook can process single or multiple Project Gutenberg text files.
 
 #### Single book
 For example, to process 'Oliver Twist' (Gutenberg ID 730)
-```
+```python
 from stonybook.process import process_single_gutenberg
 input_txt_file = 'path/to/gutenberg/data/730.txt'
 output_dir = 'path/to/output/dir'
@@ -48,8 +48,8 @@ process_single_gutenberg(input_txt_file, output_dir, annot_lib='corenlp')
 process_single_gutenberg(input_txt_file, output_dir, annot_lib='spacy')
 ```
 
-### Multiple books
-```
+#### Multiple books
+```python
 from stonybook.process import process_batch_gutenberg
 input_txt_files = ['path/to/gutenberg/data/730.txt', 'path/to/gutenberg/data/64317.txt', 'path/to/gutenberg/data/37106.txt']
 output_dir = 'path/to/output/dir'
@@ -67,7 +67,7 @@ StonyBook can process single or multiple HathiTrust zip files.
 
 #### Single book
 For example, to process 'The last of the Mohicans' (HathiTrust ID mdp.39015063553054)
-```
+```python
 from stonybook.process import process_single_hathitrust
 input_zip_file = 'path/to/hathitrust/data/mdp/39015063553054.zip'
 output_dir = 'path/to/output/dir'
@@ -79,8 +79,8 @@ process_single_hathitrust(input_zip_file, output_dir, annot_lib='corenlp')
 process_single_hathitrust(input_zip_file, output_dir, annot_lib='spacy')
 ```
 
-### Multiple books
-```
+#### Multiple books
+```python
 from stonybook.process import process_batch_hathitrust
 input_zip_files = ['path/to/hathitrust/data/mdp/39015063553054.zip', 'path/to/hathitrust/data/ucm/5324201722.zip', 'path/to/hathitrust/data/coo/31924064979440.zip']
 output_dir = 'path/to/output/dir'

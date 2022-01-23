@@ -574,7 +574,7 @@ def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None):
     unzipped_loc = unzipped_dir / book_id
     output_path_raw = output_dir / "raw.xml"
     output_path_base = output_dir / "base.xml"
-    output_path_header = output_dir / "header.xml"
+    output_path_header = output_dir / "header_annotated.xml"
     
     
     if not output_dir.exists():

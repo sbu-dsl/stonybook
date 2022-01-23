@@ -311,8 +311,6 @@ def gutenberg_preprocess(input_txt_file, output_dir, regex_tuple=None, force_raw
     output_path_raw = output_dir/"raw.xml"
     output_path_base = output_dir/"base.xml"
     output_path_header = output_dir/"header_annotated.xml"
-#     output_path_header = output_dir/"header_annotated_4.xml"
-#     output_path_header = output_dir/"header_annot_nested.xml"
     
     if force_raw or (not output_path_raw.exists()):
     

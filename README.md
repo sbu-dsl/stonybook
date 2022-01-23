@@ -58,7 +58,7 @@ output_dir = 'path/to/output/dir'
 process_batch_gutenberg(input_txt_files, output_dir, annot_lib='corenlp')
 
 # To annotate using SpaCy
-process_bacth_gutenberg(input_txt_files, output_dir, annot_lib='spacy')
+process_batch_gutenberg(input_txt_files, output_dir, annot_lib='spacy')
 ```
 
 ### HathiTrust books

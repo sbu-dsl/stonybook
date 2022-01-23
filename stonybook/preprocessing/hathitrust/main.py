@@ -9,6 +9,8 @@ from unidecode import unidecode
 from collections import Counter
 
 from stonybook.preprocessing.hathitrust.clean_hathi_headers import htrc_cleaned_pages
+from stonybook.preprocessing.hathitrust.header_annotation import annotate_headers
+from stonybook.preprocessing.regex.regex_helper import generate_final_regex_rules
 
 import sys,re
 
@@ -551,7 +553,14 @@ def clean_text(book):
     return book
 
 
-def hathitrust_preprocess(input_zip_file, output_dir):
+def save_to_file(book, filename):
+    filename = str(filename)
+    tree = etree.ElementTree(book)
+    tree.write(filename, pretty_print=True, encoding='utf-8')
+    return
+
+
+def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None):
     
     # input_zip_file:  ..../<book_library>/<book_id>.zip
     # Outputs:         output_dir/book_id/raw.xml, output_dir/book_id/base.xml
@@ -565,6 +574,7 @@ def hathitrust_preprocess(input_zip_file, output_dir):
     unzipped_loc = unzipped_dir / book_id
     output_path_raw = output_dir / "raw.xml"
     output_path_base = output_dir / "base.xml"
+    output_path_header = output_dir / "header.xml"
     
     
     if not output_dir.exists():
@@ -588,5 +598,22 @@ def hathitrust_preprocess(input_zip_file, output_dir):
         book = clean_text(book)
         
         book.write(str(output_path_base), pretty_print=True, encoding='utf-8')
+        
+    if not output_path_header.exists():
+        
+        regex_tuple = None
+        
+        if regex_tuple is None:
+            regex_tuple = generate_final_regex_rules()
+
+        parser = etree.XMLParser(remove_blank_text=True)
+        tree = etree.parse(str(output_path_base), parser)
+        book = tree.getroot()
+        
+        book = annotate_headers(book, regex_tuple)
+        
+        
+        save_to_file(book, output_path_header)
+        
         
     return

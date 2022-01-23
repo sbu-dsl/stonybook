@@ -55,10 +55,10 @@ input_txt_files = ['path/to/gutenberg/data/730.txt', 'path/to/gutenberg/data/643
 output_dir = 'path/to/output/dir'
 
 # To annotate using CoreNLP
-process_batch_gutenberg(input_txt_files, output_dir, annot_lib='corenlp')
+process_batch_gutenberg(input_txt_files, output_dir, annot_lib='corenlp', num_threads=3)
 
 # To annotate using SpaCy
-process_batch_gutenberg(input_txt_files, output_dir, annot_lib='spacy')
+process_batch_gutenberg(input_txt_files, output_dir, annot_lib='spacy', num_threads=3)
 ```
 
 ### HathiTrust books
@@ -86,9 +86,9 @@ input_zip_files = ['path/to/hathitrust/data/mdp/39015063553054.zip', 'path/to/ha
 output_dir = 'path/to/output/dir'
 
 # To annotate using CoreNLP
-process_batch_hathitrust(input_zip_files, output_dir, annot_lib='corenlp')
+process_batch_hathitrust(input_zip_files, output_dir, annot_lib='corenlp', num_threads=3)
 
 # To annotate using SpaCy
-process_batch_hathitrust(input_zip_files, output_dir, annot_lib='spacy')
+process_batch_hathitrust(input_zip_files, output_dir, annot_lib='spacy', num_threads=3)
 ```
 

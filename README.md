@@ -4,7 +4,7 @@ StonyBook is a research effort to computationally analyze large corpora of novel
 
 This repository contains code for the Stony Book annotation pipeline. Our analysis artifacts are available at https://stonybook.org/.
 
-![Pipeline overview](../master/images/new_overview.png)
+![Pipeline overview](../images/new_overview.png)
 
 ## Installation
 

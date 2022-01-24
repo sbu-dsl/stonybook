@@ -1,5 +1,7 @@
 # StonyBook
 
+![StonyBook logo](images/StonyBook.png)
+
 StonyBook is a research effort to computationally analyze large corpora of novels, to develop new natural language processing (NLP) tools suitable for working with long texts, new data science/visualization techniques to better understand the historical/cultural evolution of what we read and write.
 
 This repository contains code for the Stony Book annotation pipeline. Our analysis artifacts are available at https://stonybook.org/.

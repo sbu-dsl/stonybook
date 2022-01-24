@@ -1,6 +1,6 @@
 # StonyBook
 
-<img src="images/StonyBook.png" width="48">
+<img src="images/StonyBook.png" width="150">
 
 StonyBook is a research effort to computationally analyze large corpora of novels, to develop new natural language processing (NLP) tools suitable for working with long texts, new data science/visualization techniques to better understand the historical/cultural evolution of what we read and write.
 

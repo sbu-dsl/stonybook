@@ -1,6 +1,7 @@
 from stonybook.preprocessing.gutenberg.main import gutenberg_preprocess
 from stonybook.pipeline.corenlp.corenlp_process import corenlp_pickle
 from stonybook.pipeline.spacy.spacy_process import spacy_single_pickle
+from stonybook.pipeline.character_annotation.main import character_process
 from stonybook.preprocessing.hathitrust.main import hathitrust_preprocess
 from stonybook.preprocessing.regex.regex_helper import generate_final_regex_rules
 
@@ -69,7 +70,7 @@ def process_single_hathitrust(input_zip_file, output_dir, annot_lib='corenlp', r
         print(e)
     
     
-def process_batch_gutenberg(input_txt_file_list, output_dir, annot_lib='corenlp', num_threads):
+def process_batch_gutenberg(input_txt_file_list, output_dir, annot_lib='corenlp', num_threads=1):
     regex_tuple = generate_final_regex_rules()
     
     pool = multiprocessing.Pool(processes=num_threads)
@@ -78,7 +79,7 @@ def process_batch_gutenberg(input_txt_file_list, output_dir, annot_lib='corenlp'
     pool.join()
     
     
-def process_batch_hathitrust(input_zip_file_list, output_dir, annot_lib='corenlp', num_threads):
+def process_batch_hathitrust(input_zip_file_list, output_dir, annot_lib='corenlp', num_threads=1):
     regex_tuple = generate_final_regex_rules()
     
     pool = multiprocessing.Pool(processes=num_threads)

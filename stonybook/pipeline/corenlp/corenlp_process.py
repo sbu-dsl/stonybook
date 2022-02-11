@@ -7,6 +7,7 @@ from stanza.server import CoreNLPClient, StartServer
 from unidecode import unidecode
 import stanza.protobuf.CoreNLP_pb2 as pb2
 import re
+from stonybook.pipeline.character_annotation.main import character_process
 
 def gen_full_chapters_and_para_idxs(sections):
     chapters = []
@@ -315,9 +316,10 @@ def corenlp_single_pickle(book_dir):
         sections, header_attribs = parse_headers(input_xml_path)
         chapters, para_idxs = gen_full_chapters_and_para_idxs(sections)
         
-        port_num=8895
+        port_num=8894
         with CoreNLPClient(
             start_server=StartServer.DONT_START,
+            timeout=60000000,
             endpoint="http://localhost:{}".format(port_num)
         ) as client:
             def annotate_text(chapters):
@@ -342,15 +344,17 @@ def corenlp_single_pickle(book_dir):
     annot_chapters, chapter_mentions = gen_chapters_with_tok_info(corenlp_results, para_idxs)
     generate_tokenized_xml(annot_chapters, chapter_mentions, header_attribs, input_xml_path, output_path)
     annotate_quotes(output_path, output_path, output_pkl_path)
+    character_process(book_dir, "corenlp_annotated.xml")
+    
 
 
 def corenlp_pickle(book_dirs, num_threads=32):
     # pickle corenlp annotations for all dirs in book_dirs
     max_char_length = 10000000
-    port_num=8895
+    port_num=8894
     with CoreNLPClient(
         annotators=["tokenize", "ssplit", "pos", "lemma", "ner", "depparse", "coref", "quote"], 
-        timeout=6000000,
+        timeout=60000000,
         max_char_length=max_char_length,
         threads=num_threads,
         memory="128G",

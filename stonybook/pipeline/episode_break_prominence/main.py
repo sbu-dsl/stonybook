@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from stonybook.pipeline.character_annotation.character_clustering import annotate_characters
+from stonybook.pipeline.episode_break_prominence.add_break_prominence import add_episode_break_prominence
 
 def character_process(book_dir, input_filename='character_coref_annotated.xml'):
     book_dir = Path(book_dir)
@@ -9,4 +9,4 @@ def character_process(book_dir, input_filename='character_coref_annotated.xml'):
     output_xml_path = book_dir / output_xml
     
     if not os.path.exists(str(output_xml_path)):
-        annotate_characters(input_xml_path, book_dir, output_xml)
+        add_episode_break_prominence(input_xml_path, book_dir, output_xml)

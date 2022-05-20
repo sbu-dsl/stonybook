@@ -5,7 +5,7 @@ from nltk.corpus import stopwords
 from scipy import signal
 import math
 
-def parse_xml(filepath, outpath):
+def parse_xml(input_xml_path, output_dir):
     parser = ET.XMLParser(huge_tree=True, remove_blank_text=True)
     tree = ET.parse(str(input_xml_path), parser=parser)
     root = tree.getroot()
@@ -123,7 +123,7 @@ def compute_densities(input_xml_path, output_dir, para_breaks, chapter_breaks):
     os.remove(os.path.join(output_dir, 'lemmas_pickle.pkl'))
     return densities
 
-def get_peak_prominences(densities, para_breaks):
+def get_peak_prominences(densities):
     valid_densities = list(densities.values())
 
     # Get peak indices and prominences
@@ -140,7 +140,7 @@ def get_episode_break_prominence(input_xml_path, output_dir):
     densities = compute_densities(input_xml_path, output_dir, para_breaks, chapter_breaks)
     # print(densities)
 
-    prominences = get_peak_prominences(densities, para_breaks)
+    prominences = get_peak_prominences(densities)
 
     return prominences
 
@@ -151,7 +151,7 @@ def add_episode_break_prominence(input_xml_path, output_dir, output_xml):
     tree = ET.parse(str(input_xml_path), parser=parser)
     book = tree.getroot()
         
-    confidences = get_chapter_break_confidence(input_xml_path, output_dir)
+    confidences = get_episode_break_prominence(input_xml_path, output_dir)
 
     paragraph_tags = book.findall('.//p')
     peak_paras = list(confidences.keys())

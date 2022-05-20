@@ -92,6 +92,23 @@ def normalize_density(densities, para_breaks, max_sent_num):
             density[i] = 100
     return dict(density)
 
+def normalize_prominences(peaks, prominences, len):
+    normalized_prominence = {x:0 for x in range(0,len)}
+    try:
+        maxVal = max(prominences)
+        minVal = min(prominences)
+    except:
+        maxVal = 0
+        minVal = 0
+    rangeVals = maxVal - minVal
+    for i in peaks:
+        try:
+            normalized_prominence[i] = (prominences[i] - minVal) / rangeVals
+        except ZeroDivisionError:
+            continue
+    
+    return normalized_prominence
+
 def get_densities(edges, para_breaks, max_sent_num):
     density = [0 for _ in range(max_sent_num+1)]
     for x, y in edges:
@@ -130,8 +147,7 @@ def get_peak_prominences(densities):
     peaks, _ = signal.find_peaks([-x for x in valid_densities], plateau_size = (0, 5))
 
     prominences = signal.peak_prominences([-x for x in valid_densities], peaks, wlen=5)[0]
-
-    return dict(zip(peaks, prominences))
+    return normalize_density(prominences, peaks, len(valid_densities))
 
 
 def get_episode_break_prominence(input_xml_path, output_dir):

@@ -4,6 +4,7 @@ from stonybook.pipeline.spacy.spacy_process import spacy_single_pickle
 from stonybook.pipeline.character_annotation.main import character_process
 from stonybook.preprocessing.hathitrust.main import hathitrust_preprocess
 from stonybook.preprocessing.regex.regex_helper import generate_final_regex_rules
+from stonybook.pipeline.episode_break_prominence.main import break_prominence_process
 
 from pathlib import Path
 import os
@@ -26,12 +27,16 @@ def process_single_gutenberg(input_txt_file, output_dir, annot_lib='corenlp', re
             corenlp_pickle([output_dir])
             # Generate character_coref_annotated.xml
             character_process(output_dir, 'corenlp_annotated.xml')
+            #Generate break_prominence_character_coref_annotated.xml
+            break_prominence_process(output_dir, 'character_coref_annotated.xml')
 
         elif annot_lib == 'spacy':
             # Generate spacy_annotated.xml
             spacy_single_pickle(output_dir)
             # Generate character_coref_annotated.xml
             character_process(output_dir, 'spacy_annotated.xml')
+            #Generate break_prominence_character_coref_annotated.xml
+            break_prominence_process(output_dir, 'character_coref_annotated.xml')
 
         else:
             print('Please provide a valid annotation library name ("corenlp" or "spacy")')
@@ -57,13 +62,17 @@ def process_single_hathitrust(input_zip_file, output_dir, annot_lib='corenlp', r
             corenlp_pickle([output_dir])
             # Generate character_coref_annotated.xml
             character_process(output_dir, 'corenlp_annotated.xml')
+            #Generate break_prominence_character_coref_annotated.xml
+            break_prominence_process(output_dir, 'character_coref_annotated.xml')
 
         elif annot_lib == 'spacy':
             # Generate spacy_annotated.xml
             spacy_single_pickle(output_dir)
             # Generate character_coref_annotated.xml
             character_process(output_dir, 'spacy_annotated.xml')
-
+            #Generate break_prominence_character_coref_annotated.xml
+            break_prominence_process(output_dir, 'character_coref_annotated.xml')
+            
         else:
             print('Please provide a valid annotation library name ("corenlp" or "spacy")')
     except Exception as e:

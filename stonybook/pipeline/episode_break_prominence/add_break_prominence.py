@@ -5,6 +5,7 @@ from nltk.corpus import stopwords
 from scipy import signal
 import math
 
+#parse character_coref_annotated.xml and get necessary fields
 def parse_xml(input_xml_path, output_dir):
     parser = ET.XMLParser(huge_tree=True, remove_blank_text=True)
     tree = ET.parse(str(input_xml_path), parser=parser)
@@ -72,6 +73,7 @@ def build_graph(lemma_dict, para_breaks, N = 150):
                 edges.append([idx, idx + n])
     return edges
 
+#normalize densities in range 1-100
 def normalize_density(densities, para_breaks, max_sent_num):
     para_breakSentences = [x for x in para_breaks.values()]
     numParas = len(para_breakSentences)
@@ -92,8 +94,11 @@ def normalize_density(densities, para_breaks, max_sent_num):
             density[i] = 100
     return dict(density)
 
-def normalize_prominences(peaks, prominences, len):
-    normalized_prominence = {x:0 for x in range(0,len)}
+#normalize prominences to range 0-1
+def normalize_prominences(peaks, prominences):
+    normalized_prominence = {}
+    l = len(peaks)
+    print(peaks, prominences)
     try:
         maxVal = max(prominences)
         minVal = min(prominences)
@@ -101,14 +106,15 @@ def normalize_prominences(peaks, prominences, len):
         maxVal = 0
         minVal = 0
     rangeVals = maxVal - minVal
-    for i in peaks:
+    for i in range(l):
         try:
-            normalized_prominence[i] = (prominences[i] - minVal) / rangeVals
+            normalized_prominence[peaks[i]] = round((prominences[i] - minVal) / rangeVals, 2)
         except ZeroDivisionError:
             continue
     
     return normalized_prominence
 
+#get densities using inverse exponential weighted function
 def get_densities(edges, para_breaks, max_sent_num):
     density = [0 for _ in range(max_sent_num+1)]
     for x, y in edges:
@@ -140,6 +146,7 @@ def compute_densities(input_xml_path, output_dir, para_breaks, chapter_breaks):
     os.remove(os.path.join(output_dir, 'lemmas_pickle.pkl'))
     return densities
 
+#get peaks and prominences
 def get_peak_prominences(densities):
     valid_densities = list(densities.values())
 
@@ -147,14 +154,12 @@ def get_peak_prominences(densities):
     peaks, _ = signal.find_peaks([-x for x in valid_densities], plateau_size = (0, 5))
 
     prominences = signal.peak_prominences([-x for x in valid_densities], peaks, wlen=5)[0]
-    return normalize_density(prominences, peaks, len(valid_densities))
-
+    return normalize_prominences(peaks, prominences)
 
 def get_episode_break_prominence(input_xml_path, output_dir):
     para_breaks, chapter_breaks = parse_xml(input_xml_path, output_dir)
 
     densities = compute_densities(input_xml_path, output_dir, para_breaks, chapter_breaks)
-    # print(densities)
 
     prominences = get_peak_prominences(densities)
 

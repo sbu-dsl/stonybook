@@ -2,7 +2,7 @@ import os
 import lxml.etree as ET
 import spacy
 from scipy import signal
-from collections import defaultdict
+from collections import defaultdict, Counter
 import math
 
 #parse character_coref_annotated.xml and get necessary fields
@@ -47,12 +47,14 @@ def parse_xml(input_xml_path, output_dir):
     return para_breaks, chapter_breaks, lemmas
 
 def get_intersection_length(lemma_dict, x, y):
-    common_lemmas = lemma_dict[x].intersection(lemma_dict[y])
-    new_common_lemmas = set()
-    for l in common_lemmas:
-        if l.isalnum():
-            new_common_lemmas.add(l)
-    return len(new_common_lemmas)
+    x_counts = Counter(lemma_dict[x])
+    y_counts = Counter(lemma_dict[y])
+    common_lemmas = set(lemma_dict[x]).intersection(set(lemma_dict[y]))
+    common_lemmas_count = 0
+    for lemma in common_lemmas:
+        if lemma.isalnum():
+            common_lemmas_count += min(x_counts[lemma], y_counts[lemma])
+    return common_lemmas_count
 
 def build_graph(lemma_dict, N = 100):
     edges = defaultdict()
@@ -126,8 +128,7 @@ def compute_densities(para_breaks, lemmas):
     stop_words = spacy.load('en_core_web_sm').Defaults.stop_words
 
     for k in lemmas:
-        lemmas[k] = set(lemmas[k])
-        lemmas[k] = lemmas[k].difference(stop_words)
+        lemmas[k] = [x for x in lemmas[k] if x not in stop_words]
     
     edges = build_graph(lemmas)
 

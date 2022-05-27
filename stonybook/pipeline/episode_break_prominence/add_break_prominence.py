@@ -1,8 +1,8 @@
 import os
 import lxml.etree as ET
-import pickle
-from nltk.corpus import stopwords
+import spacy
 from scipy import signal
+from collections import defaultdict
 import math
 
 #parse character_coref_annotated.xml and get necessary fields
@@ -15,62 +15,55 @@ def parse_xml(input_xml_path, output_dir):
     para_breaks = {}
     chapter_breaks = {}
     sent_lemma = []
+    chapterCounter = 0
 
-    for mainchild in root:
-        chapterCounter = 0
-        if mainchild.tag == 'body':
-            for var in mainchild:
-                cur = var.attrib
+    mainchild = root.find('body')
 
-                for paragraphs in list(var):
-                    if paragraphs.tag == 'p':
-                        for sentences in list(paragraphs):
-                            if sentences.tag == 's':
-                                sent_lemma = {}
-                                key = int(sentences.attrib['num'])
-                                sent_lemma[key] = []
-                                for l in list(sentences):
-                                    if l.tag == 't':
-                                        token = int(l.attrib['num'])
-                                        sent_lemma[key].append(l.attrib['lemma'])
-                                    elif l.tag == 'entity':
-                                        for entityLemma in list(l):
-                                            if entityLemma.tag == 't':
-                                                token = int(entityLemma.attrib['num'])
-                                                sent_lemma[key].append(entityLemma.attrib['lemma'])
+    #loop over headers (chapters tags) in body
+    for header in mainchild:
+        for paragraphs in list(header):
+            if paragraphs.tag == 'p':
+                for sentences in list(paragraphs):
+                    if sentences.tag == 's':
+                        sent_lemma = {}
+                        key = int(sentences.attrib['num'])
+                        sent_lemma[key] = []
+                        for l in list(sentences):
+                            if l.tag == 't':
+                                token = int(l.attrib['num'])
+                                sent_lemma[key].append(l.attrib['lemma'])
+                            elif l.tag == 'entity':
+                                for entityLemma in list(l):
+                                    if entityLemma.tag == 't':
+                                        token = int(entityLemma.attrib['num'])
+                                        sent_lemma[key].append(entityLemma.attrib['lemma'])
 
-                                lemmas.update(sent_lemma)
-                        para_breaks[int(paragraphs.attrib['num'])] = key
+                        lemmas.update(sent_lemma)
+                para_breaks[int(paragraphs.attrib['num'])] = key
 
-                if 'desc' in cur.keys():
-                    chapterCounter += 1
-                    chapter_breaks[chapterCounter] = [int(paragraphs.attrib['num']), key]
+        chapterCounter += 1
+        chapter_breaks[chapterCounter] = [int(paragraphs.attrib['num']), key]
 
-    with open(os.path.join(output_dir, 'lemmas_pickle.pkl'), 'wb') as f:
-        pickle.dump(lemmas, f) 
+    return para_breaks, chapter_breaks, lemmas
 
-    return para_breaks, chapter_breaks
+def get_intersection_length(lemma_dict, x, y):
+    common_lemmas = lemma_dict[x].intersection(lemma_dict[y])
+    new_common_lemmas = set()
+    for l in common_lemmas:
+        if l.isalnum():
+            new_common_lemmas.add(l)
+    return len(new_common_lemmas)
 
-def build_graph(lemma_dict, para_breaks, N = 150):
-    edges = list()
-    para_breakSentences = [x for x in para_breaks.values()]
+def build_graph(lemma_dict, N = 100):
+    edges = defaultdict()
     if len(lemma_dict.keys()) == 0:
         return edges
-    for idx in range(max(lemma_dict.keys()) + 1):
-        if idx not in para_breakSentences:
-            continue
-        for n in range(-N, 1 + N):
-            if idx + n not in lemma_dict or idx == n:
+    for idx in range(max(lemma_dict.keys())):
+        for j in range(idx+1, idx+N+1):
+            if j not in lemma_dict or idx == j:
                 continue
-
-            common_lemmas = lemma_dict[idx].intersection(lemma_dict[idx + n])
-            new_common_lemmas = set()
-            for x in common_lemmas:
-                if x not in "!\"#$%&'()*+, -./:;<=>?@[\]^_`{|}~":
-                    new_common_lemmas.add(x)
-            common_lemmas = new_common_lemmas
-            for i in range(len(common_lemmas)):
-                edges.append([idx, idx + n])
+            common_lemmas = get_intersection_length(lemma_dict, idx, j)
+            edges[(idx, j)] = common_lemmas
     return edges
 
 #normalize densities in range 1-100
@@ -98,7 +91,7 @@ def normalize_density(densities, para_breaks, max_sent_num):
 def normalize_prominences(peaks, prominences):
     normalized_prominence = {}
     l = len(peaks)
-    print(peaks, prominences)
+
     try:
         maxVal = max(prominences)
         minVal = min(prominences)
@@ -115,35 +108,36 @@ def normalize_prominences(peaks, prominences):
     return normalized_prominence
 
 #get densities using inverse exponential weighted function
-def get_densities(edges, para_breaks, max_sent_num):
+def get_densities(edges, para_breaks, max_sent_num, N=150):
     density = [0 for _ in range(max_sent_num+1)]
-    for x, y in edges:
-        for i in range(x, y):
-            left_dist = i - x + 1
-            right_dist = y - i
-            density[i] += 1 / math.exp(left_dist + right_dist)
+    para_breakSentences = [x for x in para_breaks.values()]
+    for i in para_breakSentences:
+        for x in range(i-N+1, i+1):
+            for y in range(i+1, x+N+1):
+                if x < 0 or y > max_sent_num:
+                    continue     
+                left_dist = i - x + 1
+                right_dist = y - i
+                density[i] += edges[(x,y)] / math.exp(left_dist + right_dist)
     return normalize_density(density, para_breaks, max_sent_num)
 
-def compute_densities(input_xml_path, output_dir, para_breaks, chapter_breaks):
-    with open(os.path.join(output_dir, 'lemmas_pickle.pkl'), 'rb') as f:
-        lemmas = pickle.load(f)
+def compute_densities(para_breaks, lemmas):
 
-    stop_words = set(stopwords.words('english'))
+    stop_words = spacy.load('en_core_web_sm').Defaults.stop_words
 
     for k in lemmas:
         lemmas[k] = set(lemmas[k])
         lemmas[k] = lemmas[k].difference(stop_words)
     
-    edges = build_graph(lemmas, para_breaks)
+    edges = build_graph(lemmas)
 
-    try:
+    if len(lemmas.keys()) > 0:
         max_sent_num = max(lemmas.keys())
-    except ValueError:
+    else:
         max_sent_num = 0
 
     densities = get_densities(edges, para_breaks, max_sent_num)
 
-    os.remove(os.path.join(output_dir, 'lemmas_pickle.pkl'))
     return densities
 
 #get peaks and prominences
@@ -157,9 +151,9 @@ def get_peak_prominences(densities):
     return normalize_prominences(peaks, prominences)
 
 def get_episode_break_prominence(input_xml_path, output_dir):
-    para_breaks, chapter_breaks = parse_xml(input_xml_path, output_dir)
+    para_breaks, chapter_breaks, lemmas = parse_xml(input_xml_path, output_dir)
 
-    densities = compute_densities(input_xml_path, output_dir, para_breaks, chapter_breaks)
+    densities = compute_densities(para_breaks, lemmas)
 
     prominences = get_peak_prominences(densities)
 

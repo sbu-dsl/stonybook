@@ -4,6 +4,7 @@ import spacy
 from scipy import signal
 from collections import defaultdict, Counter
 import math
+from stonybook.pipeline.episode_break_prominence.chapter_prediction import get_preds
 
 #parse character_coref_annotated.xml and get necessary fields
 def parse_xml(input_xml_path, output_dir):
@@ -16,6 +17,7 @@ def parse_xml(input_xml_path, output_dir):
     chapter_breaks = {}
     sent_lemma = []
     chapterCounter = 0
+    num_tokens = 0
 
     mainchild = root.find('body')
 
@@ -31,11 +33,13 @@ def parse_xml(input_xml_path, output_dir):
                         for l in list(sentences):
                             if l.tag == 't':
                                 token = int(l.attrib['num'])
+                                num_tokens += 1
                                 sent_lemma[key].append(l.attrib['lemma'])
                             elif l.tag == 'entity':
                                 for entityLemma in list(l):
                                     if entityLemma.tag == 't':
                                         token = int(entityLemma.attrib['num'])
+                                        num_tokens += 1
                                         sent_lemma[key].append(entityLemma.attrib['lemma'])
 
                         lemmas.update(sent_lemma)
@@ -44,7 +48,7 @@ def parse_xml(input_xml_path, output_dir):
         chapterCounter += 1
         chapter_breaks[chapterCounter] = [int(paragraphs.attrib['num']), key]
 
-    return para_breaks, chapter_breaks, lemmas
+    return para_breaks, lemmas, num_tokens
 
 def get_intersection_length(lemma_dict, x, y):
     x_counts = Counter(lemma_dict[x])
@@ -56,7 +60,7 @@ def get_intersection_length(lemma_dict, x, y):
             common_lemmas_count += min(x_counts[lemma], y_counts[lemma])
     return common_lemmas_count
 
-def build_graph(lemma_dict, N = 100):
+def build_graph(lemma_dict, N = 150):
     edges = defaultdict()
     if len(lemma_dict.keys()) == 0:
         return edges
@@ -91,7 +95,8 @@ def normalize_density(densities, para_breaks, max_sent_num):
 
 #normalize prominences to range 0-1
 def normalize_prominences(peaks, prominences):
-    normalized_prominence = {}
+    normalized_prominence_para = {}
+    normalized_prominence = []
     l = len(peaks)
 
     try:
@@ -103,11 +108,13 @@ def normalize_prominences(peaks, prominences):
     rangeVals = maxVal - minVal
     for i in range(l):
         try:
-            normalized_prominence[peaks[i]] = round((prominences[i] - minVal) / rangeVals, 2)
+            val = round((prominences[i] - minVal) / rangeVals, 2)
+            normalized_prominence_para[peaks[i]] = val
+            normalized_prominence.append(val)
         except ZeroDivisionError:
             continue
     
-    return normalized_prominence
+    return normalized_prominence, normalized_prominence_para
 
 #get densities using inverse exponential weighted function
 def get_densities(edges, para_breaks, max_sent_num, N=150):
@@ -149,16 +156,19 @@ def get_peak_prominences(densities):
     peaks, _ = signal.find_peaks([-x for x in valid_densities], plateau_size = (0, 5))
 
     prominences = signal.peak_prominences([-x for x in valid_densities], peaks, wlen=5)[0]
-    return normalize_prominences(peaks, prominences)
+    prominences, normalized_prominences = normalize_prominences(peaks, prominences)
+    return peaks, prominences, normalized_prominences
 
 def get_episode_break_prominence(input_xml_path, output_dir):
-    para_breaks, chapter_breaks, lemmas = parse_xml(input_xml_path, output_dir)
+    para_breaks, lemmas, num_tokens = parse_xml(input_xml_path, output_dir)
 
     densities = compute_densities(para_breaks, lemmas)
 
-    prominences = get_peak_prominences(densities)
+    peaks, prominences, normalized_prominences = get_peak_prominences(densities)
 
-    return prominences
+    data = {"densities" : densities, "peaks": peaks, "prominences": prominences, "num_tokens" : num_tokens}
+
+    return data, normalized_prominences
 
 #add chapter break confidences to each paragraph tag
 def add_episode_break_prominence(input_xml_path, output_dir, output_xml):
@@ -167,7 +177,9 @@ def add_episode_break_prominence(input_xml_path, output_dir, output_xml):
     tree = ET.parse(str(input_xml_path), parser=parser)
     book = tree.getroot()
         
-    confidences = get_episode_break_prominence(input_xml_path, output_dir)
+    data, confidences = get_episode_break_prominence(input_xml_path, output_dir)
+    
+    predictions = get_preds(data)
 
     paragraph_tags = book.findall('.//p')
     peak_paras = list(confidences.keys())
@@ -178,6 +190,11 @@ def add_episode_break_prominence(input_xml_path, output_dir, output_xml):
             p_tag.attrib['episode_break_prominence'] = str(confidences[num])
         else:
             p_tag.attrib['episode_break_prominence'] = "0"
+
+        if num in predictions:
+            p_tag.attrib['chapter_break_prediction'] = "1"
+        else:
+            p_tag.attrib['chapter_break_prediction'] = "0"
     
     #create new xml
     with open(os.path.join(output_dir, output_xml), 'wb') as f:

@@ -13,6 +13,7 @@ import tarfile
 from stonybook.preprocessing.hathitrust.clean_hathi_headers import htrc_cleaned_pages
 from stonybook.preprocessing.hathitrust.header_annotation import annotate_headers
 from stonybook.preprocessing.regex.regex_helper import generate_final_regex_rules
+from stonybook.preprocessing.hathitrust.ocrfixr_hathi_zip import ocrfixr_to_new_folder
 
 import sys,re
 
@@ -576,7 +577,7 @@ def save_to_file(book, filename):
     return
 
 
-def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None):
+def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None, ocrfixr_flag=True):
     
     # input_zip_file:  ..../<book_library>/<book_id>.zip
     # Outputs:         output_dir/book_id/raw.xml, output_dir/book_id/base.xml
@@ -588,22 +589,52 @@ def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None):
     output_dir = output_dir / lib_id / book_id
     unzipped_dir = output_dir / "unzipped/"
     unzipped_loc = unzipped_dir / book_id
+    ocrfixr_unzipped_dir = output_dir / "ocr_unzipped/"
+    ocrfixr_unzipped_loc = ocrfixr_unzipped_dir / book_id
+<<<<<<< HEAD
+    ocrfixr_fixes_dir = output_dir / "ocr_fixes/" / book_id 
+=======
+>>>>>>> 6fd8c0b11d8242ea35d097844cf214f2346237e5
     output_path_raw = output_dir / "raw.xml"
     output_path_base = output_dir / "base.xml"
     output_path_header = output_dir / "header_annotated.xml"
     
-    
+
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
     
     if not unzipped_dir.exists():
         with zipfile.ZipFile(input_zip_file, 'r') as zip_ref:
             zip_ref.extractall(unzipped_dir)
+    
+<<<<<<< HEAD
+    if ocrfixr_flag:
+        if not ocrfixr_unzipped_loc.exists():
+            ocrfixr_unzipped_loc.mkdir(parents=True)
+        
+        if not ocrfixr_fixes_dir.exists():
+            ocrfixr_fixes_dir.mkdir(parents=True)
+
+        if not output_path_raw.exists():
+            ocrfixr_to_new_folder(unzipped_loc, ocrfixr_unzipped_loc, ocrfixr_fixes_dir)
+            cleaned_pages = htrc_cleaned_pages(ocrfixr_unzipped_loc)
+            grouped_sections = parse_grouped_sections(ocrfixr_unzipped_loc)
+            success = generate_xml_tree(grouped_sections, cleaned_pages, ocrfixr_unzipped_loc, output_path_raw)
+    else:
+        if not output_path_raw.exists():
+            cleaned_pages = htrc_cleaned_pages(unzipped_loc)
+            grouped_sections = parse_grouped_sections(unzipped_loc)
+            success = generate_xml_tree(grouped_sections, cleaned_pages, unzipped_loc, output_path_raw)
+=======
+    if not ocrfixr_unzipped_loc.exists():
+        ocrfixr_unzipped_loc.mkdir(parents=True)
 
     if not output_path_raw.exists():
-        cleaned_pages = htrc_cleaned_pages(unzipped_loc)
-        grouped_sections = parse_grouped_sections(unzipped_loc)
-        success = generate_xml_tree(grouped_sections, cleaned_pages, unzipped_loc, output_path_raw)
+        ocrfixr_to_new_folder(unzipped_loc, ocrfixr_unzipped_loc)
+        cleaned_pages = htrc_cleaned_pages(ocrfixr_unzipped_loc)
+        grouped_sections = parse_grouped_sections(ocrfixr_unzipped_loc)
+        success = generate_xml_tree(grouped_sections, cleaned_pages, ocrfixr_unzipped_loc, output_path_raw)
+>>>>>>> 6fd8c0b11d8242ea35d097844cf214f2346237e5
     
     if not output_path_base.exists():
         parser = etree.XMLParser(remove_blank_text=True)

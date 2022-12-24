@@ -591,7 +591,10 @@ def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None, ocrfixr_
     unzipped_loc = unzipped_dir / book_id
     ocrfixr_unzipped_dir = output_dir / "ocr_unzipped/"
     ocrfixr_unzipped_loc = ocrfixr_unzipped_dir / book_id
+<<<<<<< HEAD
     ocrfixr_fixes_dir = output_dir / "ocr_fixes/" / book_id 
+=======
+>>>>>>> 6fd8c0b11d8242ea35d097844cf214f2346237e5
     output_path_raw = output_dir / "raw.xml"
     output_path_base = output_dir / "base.xml"
     output_path_header = output_dir / "header_annotated.xml"
@@ -604,6 +607,7 @@ def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None, ocrfixr_
         with zipfile.ZipFile(input_zip_file, 'r') as zip_ref:
             zip_ref.extractall(unzipped_dir)
     
+<<<<<<< HEAD
     if ocrfixr_flag:
         if not ocrfixr_unzipped_loc.exists():
             ocrfixr_unzipped_loc.mkdir(parents=True)
@@ -621,6 +625,16 @@ def hathitrust_preprocess(input_zip_file, output_dir, regex_tuple=None, ocrfixr_
             cleaned_pages = htrc_cleaned_pages(unzipped_loc)
             grouped_sections = parse_grouped_sections(unzipped_loc)
             success = generate_xml_tree(grouped_sections, cleaned_pages, unzipped_loc, output_path_raw)
+=======
+    if not ocrfixr_unzipped_loc.exists():
+        ocrfixr_unzipped_loc.mkdir(parents=True)
+
+    if not output_path_raw.exists():
+        ocrfixr_to_new_folder(unzipped_loc, ocrfixr_unzipped_loc)
+        cleaned_pages = htrc_cleaned_pages(ocrfixr_unzipped_loc)
+        grouped_sections = parse_grouped_sections(ocrfixr_unzipped_loc)
+        success = generate_xml_tree(grouped_sections, cleaned_pages, ocrfixr_unzipped_loc, output_path_raw)
+>>>>>>> 6fd8c0b11d8242ea35d097844cf214f2346237e5
     
     if not output_path_base.exists():
         parser = etree.XMLParser(remove_blank_text=True)
